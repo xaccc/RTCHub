@@ -1,0 +1,144 @@
+1. Reference
+
+google webrtc:
+    http://src.chromium.org/svn/trunk/src/chrome/test/data/webrtc/manual/peerconnection.html
+    http://src.chromium.org/svn/trunk/src/chrome/test/data/webrtc/getusermedia.js
+    http://src.chromium.org/svn/trunk/src/chrome/test/data/webrtc/manual/peerconnection.js
+
+w3c webrtc:
+    http://www.w3.org/TR/2012/WD-webrtc-20120821/
+    http://www.w3.org/TR/2012/WD-mediacapture-streams-20120628/
+
+firebreath:
+    http://www.firebreath.org/
+
+2. Supportted Features
+    This plugin implements two mimetypes: 
+    1) application/x-webrtcengine for WebrtcEngine: 
+        this is the main type and contains:
+            (1) getUserMedia for MediaStream
+            (2) createRTCPeerConnection for RTCPeerConnection
+            (3) createRTCSessionDescription for RTCSessionDescription
+            (4) createRTCIceCandidate for RTCIceCandidate
+
+    2) application/x-webrtcrenderer for WebrtcRenderer: 
+        this is the secondary mimetype for video render, which can only be used in WebrtcEngine.
+            (1) initRenderer
+            (2) getRendererX
+
+3. Plugin Specs
+    1) for WebrtcEngine
+        <object id="webrtc-engine" type="application/x-webrtcengine" width="0" height="0">
+            <param name="onload" value="OnEngineLoad" />
+        </object>
+
+        Then you can acquire the object ptr in "OnEngineLoad" and call its methods. Now it supports the following specs:
+
+        (1) getUserMedia(constraints, okCallback, failedCallback):
+            To get local stream with a/v. 
+            (a) okCallback(MediaStream stream)
+            (b) failedCallback(string err)
+           *(c) for MediaStream:
+                    read-only string label, 
+                    read-only MediaStreamTrackList audioTracks, 
+                    read-only MediaStreamTrackList videoTracks,
+           *(d) for MediaStreamTrackList:
+                    read-only unsigned long length,
+                    MediaStreamTrack item(int),
+                    void add(MediaStreamTrack track),
+                    void remove(MediaStreamTrack track),
+           *(e) for MediaStreamTrack:
+                    read-only string kind,
+                    read-only string label,
+                    read-write bool enabled,
+
+        (2) createRTCPeerConnection(void):
+            To create and return one RTCPeerConnection object, which is similar to HTML5/Webrtc,
+            e.g. createOffer/createAnswer, 
+                 setLocalDescription/localDescription,
+                 setRemoteDescription/remoteDescription,
+                 updateIce/addIceCandidate,
+                 localStreams/remoteStreams,
+            And also have some extra interfaces for video render: 
+                setLocalRenderer/setRemoteRenderer.
+
+          * for RTCPeerConnection:
+            (a) void createOffer(sdpCallback, errorCallback, constraints),
+            (b) void createAnswer(RTCSessionDescription sdp, sdpCallback, errorCallback, constraints),
+            (c) void setLocalDescription(RTCSessionDescription sdp, voidCallback, errorCallback),
+            (d) read-only RTCSessionDescription localDescription,
+            (e) void setRemoteDescription(RTCSessionDescription sdp, voidCallback, errorCallback),
+            (f) read-only RTCSessionDescription remoteDescription,
+            (g) void addIceCandidate(RTCIceCandidate candi),
+            (h) read-only MediaStream[] localStreams,
+            (i) read-only MediaStream[] remoteStreams,
+            (j) void addStream(MediaStream stream, constraints),
+            (k) void removeStream(MediaStream stream),
+            (l) void close(),
+            (m) void setLocalRenderer(unsigned long render, int action),
+            (n) void setRemoteRenderer(unsigned lon render, int action),
+
+            [Note]:
+            (a) sdpCallback(RTCSessionDescription sdp);
+            (b) errorCallback(string err);
+            (c) constraints: json dict format, seen in webrtc_ex.js
+            (d) voidCallback(void);
+            (e) setLocalRenderer/setRemoteRenderer(render, action): 
+                    render: from WebrtcRenderer.getRendererX),
+                    action: 0 - add render, 1 - remove render
+            
+        (3) createRTCSessionDescription(void):
+            To create and return one RTCSessionDescription object, which is similar to HTML5/Webrtc,
+
+          * for RTCSessionDescription:
+                    read-write string type,
+                    read-write string sdp,
+
+        (4) createRTCIceCandidate(void):
+            To create and return one RTCIceCandidate object, which is similar to HTML5/Webrtc,
+
+          * for RTCIceCandidate:
+                    read-write string candidate,
+                    read-write string sdpMid,
+                    read-write unsigned short sdpMLineIndex,
+
+        (5) void releaseUserMedia(MediaStream):
+            To release the local MediaStream gotten by getUserMedia().
+
+        (6) map<string, string> getVideoDevices():
+            Return local video devices and its format: <string unique_dev_id, string device_name>
+
+        (7) vector<string> getAudioDevices():
+            Return local audio devices and its format: <string device_name>
+
+        (8) void setVideoDevice(string unique_dev_id):
+            Select video device by its unique_dev_id, which is acquired by getVideoDevices(),
+            In order to make setVideoDevice() valid, should call it before getUserMedia.
+            If not set, getUserMedia() will chose default video device.
+
+        (9) void destroyRTCPeerConnection(RTCPeerConnection):
+            RTCPeerConnection object cannot be released automatically except to close the HTML page.
+            So when not using, remember to destroy it by destroyRTCPeerConnection.
+
+    2) for WebrtcRenderer
+        <object id="local-view" type="application/x-webrtcrenderer" width="320" height="240">
+            <param name="onload" value="OnLocalRendererLoad" />
+        </object>
+
+        In order to render video in HTML pages conventially, WebrtcRenderer is implemented into WebrtcEngine.
+        Then you can use the two objects in the same HTML pages, and then they will share the same process's memory spaces.
+
+        And it provides the following methods for JS.
+        (1) bool initRenderer(string label, int width, int height):
+            To initialize this renderer, and should be called for every plugin only once.
+
+        (2) unsigned long getRendererX(void):
+            To return one actual renderer which can used in WebrtcEngine's RTCPeerConnection. And its call likes:
+            RTCPeerConnection.setLocalRenderer(WebrtcRenderer.getRendererX(), action);
+
+4. Examples
+    webrtc_ex.html/webrtc_ex.js
+
+5. Build
+    sh run_cfg.sh will give tips.
+

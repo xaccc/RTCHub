@@ -1,0 +1,9 @@
+{
+  "name": "WebrtcEngine",
+  "version": "${FBSTRING_PLUGIN_VERSION}",
+  "description": "Webrtc Engine for stream/track/ICE..",
+
+	"plugins": [
+    { "path": "npWebrtcEngine.dll", "public": true }
+  ]
+}

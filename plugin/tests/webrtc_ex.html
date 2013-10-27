@@ -1,0 +1,261 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>Webrtc Video Chat</title>
+        <link rel="StyleSheet" href="stylesheet.css">
+        <script type="text/javascript" src="json2.js"></script>
+        <script type="text/javascript" src="webrtc_ex.js"></script>
+        <script type="text/javascript">
+
+$ = function(id) {
+    return document.getElementById(id);
+};
+
+
+var gDebugCnt = 0;
+function debugHtml(message) {
+    $('debug').innerHTML += gDebugCnt + ': ' + message + '<br>';
+    gDebugCnt++;
+}
+
+window.onload = function() {
+    $('pc-createoffer-constraints').value = JSON.stringify(gCreateOfferConstraints, null, ' ');
+    $('pc-createanswer-constraints').value = JSON.stringify(gCreateAnswerConstraints, null, ' ');
+    replaceDebugCallback(debugHtml);
+    updateGetUserMediaConstraints();
+    doNotAutoAddLocalStreamWhenCalled();
+}
+
+function OnEngineLoad()
+{
+    gWebrtc = $('webrtc-engine');
+    if (gWebrtc) {
+        debug("init webrtc-engine ");
+    }
+}
+
+function OnLocalRendererLoad()
+{
+    gLocalView = $('local-view');
+    if (gLocalView) {
+        debug("init gLocalView");
+        AddEvent(gLocalView, "onsize", onsizeLocalCallback_);
+        gLocalView.initRenderer("local_view_label", 320, 240);
+    }
+}
+
+function OnRemoteRendererLoad()
+{
+    gRemoteView = $('remote-view');
+    if (gRemoteView) {
+        debug("init gRemoteView");
+        AddEvent(gRemoteView, "onsize", onsizeRemoteCallback_);
+        gRemoteView.initRenderer("remote_view_label", 320, 240);
+    }
+}
+
+function onsizeLocalCallback_(width, height)
+{
+    debug("onsizeLocalCallback_, w=" + width + ", h=" + height);
+    gLocalView.width = width;
+    gLocalView.height = height;
+}
+
+function onsizeRemoteCallback_(width, height)
+{
+    debug("onsizeRemoteCallback_, w=" + width + ", h=" + height);
+    gRemoteView.width = width;
+    gRemoteView.height = height;
+}
+
+
+/**
+ *
+ */
+
+function ensureHasPeerConnection_() {
+    if (getReadyState() == 'no-peer-connection') {
+        debug("preparePeerConnection");
+        preparePeerConnection();
+    }
+}
+
+function updateGetUserMediaConstraints() {
+    var constraints = {
+        audio: $('audio').checked,
+        video: $('video').checked
+    };
+    $('getusermedia-constraints').value = JSON.stringify(constraints, null, ' ');
+}
+
+function getUserMediaFromHere() {
+    var constraints = $('getusermedia-constraints').value;
+    getUserMedia(getEvaluatedJavaScript_(constraints));
+}
+
+function connectFromHere() {
+    var server = $('server').value;
+    if ($('peer-id').value == '') {
+        /* Generate a random name to distinguish us from other tabs: */
+        $('peer-id').value = 'peer_' + Math.floor(Math.random() * 10000);
+        debug('Our name from now on will be ' + $('peer-id').value);
+    }
+    connect(server, $('peer-id').value);
+}
+
+function getEvaluatedJavaScript_(stringRepresentation) {
+    try {
+        var evaluatedJavaScript;
+        eval('evaluatedJavaScript = ' + stringRepresentation);
+    } catch (exception) {
+        debug('Not valid JavaScript expression: ' + stringRepresentation);
+        return null;
+    }
+    return evaluatedJavaScript;
+}
+
+function negotiateCallFromHere() {
+    /* Set the global variables used in jsep01_call.js with values from our UI. */
+    debug("negotiateStreamFromHere begin");
+    setCreateOfferConstraints(getEvaluatedJavaScript_($('pc-createoffer-constraints').value));
+    setCreateAnswerConstraints(getEvaluatedJavaScript_($('pc-createanswer-constraints').value));
+    ensureHasPeerConnection_();
+    negotiateCall();
+    debug("negotiateStreamFromHere end");
+}
+
+function addLocalStreamFromHere() {
+    debug("addLocalStreamFromHere begin");
+    ensureHasPeerConnection_();
+    addLocalStream();
+    debug("addLocalStreamFromHere end");
+}
+
+function removeLocalStreamFromHere() {
+    removeLocalStream();
+}
+
+function hangUpFromHere() {
+    hangUp();
+    acceptIncomingCallsAgain();
+}
+
+function toggleRemoteVideoFromHere() {
+  toggleRemoteStream(function(remoteStream) {
+    return remoteStream.getVideoTracks()[0];
+  }, 'video');
+}
+
+function toggleRemoteAudioFromHere() {
+  toggleRemoteStream(function(remoteStream) {
+    return remoteStream.getAudioTracks()[0];
+  }, 'audio');
+}
+
+function toggleLocalVideoFromHere() {
+  toggleLocalStream(function(localStream) {
+    return localStream.getVideoTracks()[0];
+  }, 'video');
+}
+
+function toggleLocalAudioFromHere() {
+  toggleLocalStream(function(localStream) {
+    return localStream.getAudioTracks()[0];
+  }, 'audio');
+}
+
+function stopLocalFromHere() {
+  stopLocalStream();
+}
+
+function PrintMessagePage(errMsg)
+{
+    var pageLocation = document.getElementById("pagelocation");
+    pageLocation.innerHTML = errMsg;
+}
+        </script>
+    </head>
+
+    <body>
+        <h1>Webrtc Video Chat</h1>
+        <object id="webrtc-engine" type="application/x-webrtcengine" width="0" height="0">
+            <param name="onload" value="OnEngineLoad" />
+        </object><br/>
+
+
+        <div id="container">
+            <div id="left-half">
+            <div>
+                <h2>Local Preview</h2>
+                <object id="local-view" type="application/x-webrtcrenderer" width="320" height="240" class="video-area" style="background-color:#000;">
+                    <param name="onload" value="OnLocalRendererLoad" />
+                </object><br/>
+            </div>
+            </div>
+            <div id="right-half">
+            <div>
+                <h2>Remote Video</h2>
+                <object id="remote-view" type="application/x-webrtcrenderer" width="320" height="240" class="video-area"  style="background-color:#000;">
+                    <param name="onload" value="OnRemoteRendererLoad" />
+                </object><br/>
+            </div>
+            </div>
+        </div>
+
+        <br/>
+        <div id="getusermedia-input">
+            Constraints: <input type="text" id="getusermedia-constraints">
+            Audio<input type="checkbox" id="audio" checked onclick="updateGetUserMediaConstraints();"/>
+            Video<input type="checkbox" id="video" checked onclick="updateGetUserMediaConstraints();"/>
+            <button id="re-request" onclick="getUserMediaFromHere();">Request GetUserMedia</button>
+            <br/>
+        </div>
+
+        <br/>
+        <div id="peer-connect">
+            Server: <input type="text" id="server" size="30" value="http://localhost:8888" />
+            Peer ID: <input type="text" id="peer-id" size="10" />
+            <button id="connect" onclick="connectFromHere();">Connect</button>
+            <br/>
+        </div>
+
+        <br/>
+        <div>
+            createOffer MediaConstraints: 
+            <input type="text" id="pc-createoffer-constraints" rows="7" cols="40"/>
+            <br/>
+            createAnswer MediaConstraints: 
+            <input type="text" id="pc-createanswer-constraints" rows="7" cols="40"/>
+            <br/>
+        </div>
+
+        <br/>
+        <div>
+            Call:
+            <button onclick="negotiateCallFromHere();">Negotiate</button>
+            <button onclick="hangUpFromHere();">Hang up</button>
+            <br/>
+
+            Local Stream:
+            <button onclick="addLocalStreamFromHere();">Add</button>
+            <button onclick="removeLocalStreamFromHere();">Remove</button>
+            <button onclick="stopLocalFromHere();">Stop</button>
+            <button onclick="toggleLocalVideoFromHere();">Toggle Video</button>
+            <button onclick="toggleLocalAudioFromHere();">Toggle Audio</button>
+            <br/>
+
+            Remote Stream:
+            <button onclick="toggleRemoteVideoFromHere();">Toggle Video</button>
+            <button onclick="toggleRemoteAudioFromHere();">Toggle Audio</button>
+            <br/>
+        </div>
+
+        <div>
+        <br/>
+        Debug: <pre id="debug"></pre>
+        <br/>
+        <div>
+
+        <pre id="pagelocation"></pre>
+    </body>
+</html>

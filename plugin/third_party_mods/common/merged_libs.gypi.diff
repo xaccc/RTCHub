@@ -1,0 +1,12 @@
+--- libjingle/trunk/third_party/webrtc/build/merge_libs.gyp	Fri May 17 11:55:52 2013
++++ libjingle/trunk/third_party/webrtc/build/merge_libs.gyp	Tue May 21 18:44:41 2013
+@@ -10,7 +10,8 @@
+   'includes': ['common.gypi',],
+   'variables': {
+     'merge_libs_dependencies': [
+-      '../video_engine/video_engine.gyp:video_engine_core',
++#     '../video_engine/video_engine.gyp:video_engine_core',
++      '../../../talk/libjingle.gyp:libjingle_peerconnection',
+     ],
+   },
+   'targets': [

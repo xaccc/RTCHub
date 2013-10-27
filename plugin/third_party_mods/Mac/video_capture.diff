@@ -1,0 +1,38 @@
+--- video_capture_mac.mm	2013-05-22 14:52:19.000000000 +0300
++++ libjingle/trunk/third_party/webrtc/modules/video_capture/mac/video_capture_mac.mm	2013-05-22 14:53:06.000000000 +0300
+@@ -30,8 +30,8 @@
+ #include "QuickTime/video_capture_quick_time.h"
+ #include "QuickTime/video_capture_quick_time_info.h"
+ #else
+-#include "QTKit/video_capture_qtkit.h"
+-#include "QTKit/video_capture_qtkit_info.h"
++#include "qtkit/video_capture_qtkit.h"
++#include "qtkit/video_capture_qtkit_info.h"
+ #endif
+ 
+ namespace webrtc
+ 
+Index: libjingle/trunk/talk/media/webrtc/webrtcvideocapturer.cc
+===================================================================
+--- libjingle/trunk/talk/media/webrtc/webrtcvideocapturer.cc	(revision 284)
++++ libjingle/trunk/talk/media/webrtc/webrtcvideocapturer.cc	(working copy)
+@@ -190,8 +190,7 @@
+   }
+   factory_->DestroyDeviceInfo(info);
+   if (supported.empty()) {
+-    LOG(LS_ERROR) << "Failed to find usable formats for id: " << device.id;
+-    return false;
++    LOG(LS_WARNING) << "Failed to find usable formats for id: " << device.id;
+   }
+ 
+   module_ = factory_->Create(0, vcm_id);
+@@ -203,7 +202,9 @@
+   // It is safe to change member attributes now.
+   module_->AddRef();
+   SetId(device.id);
+-  SetSupportedFormats(supported);
++  if (!supported.empty()) {
++    SetSupportedFormats(supported);
++  }
+   return true;
+ }
